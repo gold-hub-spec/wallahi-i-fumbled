@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wallahi I Fumbled</title>
+<meta name="description" content="Paste your Solana wallet. See how much SOL you fumbled selling memecoins too early.">
+<meta property="og:title" content="Wallahi I Fumbled">
+<meta property="og:description" content="Paste your wallet. See the bag you fumbled.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Figtree:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column; a form up top, then a receipt-style results card. */
+:root {
+  --ink: #160f1c;          /* page ground, deep plum */
+  --panel: #221829;        /* card surface */
+  --line: #3a2b44;         /* hairlines */
+  --text: #f3ebe4;         /* main text */
+  --muted: #a594ad;        /* secondary text */
+  --gold: #e9b44c;         /* accent: the bag */
+  --loss: #ff6b5b;         /* the fumble */
+  --font-display: "Dela Gothic One", "Arial Black", Impact, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, sans-serif;
+  --font-num: "DM Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font: 16px/1.55 var(--font-body);
+  padding: 32px 16px 64px;
+  min-height: 100vh;
+}
+.wrap { max-width: 680px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+
+header { display: grid; gap: 10px; }
+.brand {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 9vw, 4.2rem);
+  line-height: .95;
+  letter-spacing: -.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.brand span { color: var(--gold); }
+.tag { color: var(--muted); margin: 0; max-width: 46ch; }
+
+form { display: grid; gap: 12px; }
+label.lbl {
+  font: 500 .72rem/1 var(--font-num);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--muted);
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+input, select, button { font: inherit; }
+#wallet {
+  flex: 1 1 320px;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-family: var(--font-num);
+  font-size: .9rem;
+}
+#depth {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 14px 12px;
+  border-radius: 10px;
+}
+.go {
+  background: var(--gold);
+  color: var(--ink);
+  border: 0;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.go:hover { filter: brightness(1.08); }
+.go:disabled { opacity: .6; cursor: wait; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.hint { font-size: .85rem; color: var(--muted); margin: 0; }
+.link {
+  background: none; border: 0; padding: 0; color: var(--gold);
+  text-decoration: underline; cursor: pointer; font-size: .85rem;
+}
+
+.status {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  color: var(--muted);
+  font-family: var(--font-num);
+  font-size: .9rem;
+}
+.status.err { border-color: var(--loss); color: var(--loss); }
+
+/* Results: a receipt */
+.receipt {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.sample-flag {
+  background: var(--gold); color: var(--ink);
+  font: 500 .72rem/1 var(--font-num); letter-spacing: .1em; text-transform: uppercase;
+  padding: 8px 20px;
+}
+/* "Wallahi, I'm finished" moment, shown before the results */
+.finished {
+  width: 100%;
+  min-height: 52vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 32px 16px;
+  font: inherit;
+}
+.fin-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 11vw, 4.8rem);
+  line-height: 1;
+  color: var(--loss);
+  text-wrap: balance;
+}
+.fin-sub {
+  font: 500 .75rem/1 var(--font-num);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fin-title { animation: slam .55s cubic-bezier(.2, 1.6, .4, 1) both; }
+  .finished { animation: shake .4s .45s ease-in-out both; }
+  @keyframes slam { from { transform: scale(2.2); opacity: .2; } to { transform: none; opacity: 1; } }
+  @keyframes shake {
+    0%, 100% { transform: none; }
+    25% { transform: translateX(-6px) rotate(-.6deg); }
+    50% { transform: translateX(5px) rotate(.5deg); }
+    75% { transform: translateX(-3px); }
+  }
+}
+.rank-of { font: .78rem var(--font-num); color: var(--muted); }
+.ranks { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
+.ranks li { display: flex; justify-content: space-between; gap: 12px; }
+.ranks li span:last-child { font-family: var(--font-num); white-space: nowrap; }
+
+.r-top { padding: 24px 20px 20px; display: grid; gap: 6px; }
+.r-label {
+  font: 500 .72rem/1 var(--font-num);
+  text-transform: uppercase; letter-spacing: .12em; color: var(--muted);
+}
+.big {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 11vw, 4.6rem);
+  line-height: 1;
+  color: var(--loss);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.big small { font-size: .38em; color: var(--text); margin-left: .2em; }
+.usd { font-family: var(--font-num); color: var(--muted); }
+.tier {
+  justify-self: start;
+  margin-top: 10px;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: .9rem;
+}
+.wallet-line { font: .78rem var(--font-num); color: var(--muted); overflow-wrap: anywhere; }
+
+.tear {
+  height: 14px;
+  background:
+    radial-gradient(circle at 7px 0, var(--ink) 6px, transparent 6.5px) 0 0 / 14px 14px repeat-x;
+  border-top: 1px dashed var(--line);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid var(--line);
+}
+.stat { padding: 16px 20px; display: grid; gap: 4px; min-width: 0; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat b { font: 500 1.15rem var(--font-num); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+  .stats { grid-template-columns: 1fr; }
+  .stat + .stat { border-left: 0; border-top: 1px solid var(--line); }
+}
+
+.worst { padding: 20px; display: grid; gap: 12px; border-bottom: 1px solid var(--line); }
+.worst-body { display: flex; gap: 14px; align-items: center; }
+.tok-img {
+  width: 52px; height: 52px; border-radius: 50%; flex: none;
+  background: var(--line); object-fit: cover;
+  display: grid; place-items: center;
+  font: 700 1rem var(--font-num); color: var(--muted);
+}
+.worst-text { min-width: 0; }
+.worst-text h3 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
+.worst-text p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; }
+.worst-text p em { color: var(--loss); font-style: normal; font-family: var(--font-num); }
+
+.list { padding: 8px 0 4px; }
+.list h4 { margin: 12px 20px 6px; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 460px; }
+th {
+  text-align: left; font: 500 .68rem var(--font-num); text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted); padding: 8px 20px; border-bottom: 1px solid var(--line);
+}
+td { padding: 10px 20px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+td.num, th.num { text-align: right; font-family: var(--font-num); }
+td.loss { color: var(--loss); }
+tr:last-child td { border-bottom: 0; }
+.sym { font-weight: 700; }
+.sym small { display: block; font-weight: 400; color: var(--muted); font-size: .78rem; }
+
+.r-foot { padding: 16px 20px 20px; display: grid; gap: 12px; border-top: 1px solid var(--line); }
+.share { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn2 {
+  background: transparent; color: var(--text); border: 1px solid var(--line);
+  padding: 10px 16px; border-radius: 10px; cursor: pointer; text-decoration: none; font-size: .92rem;
+}
+.btn2:hover { border-color: var(--gold); color: var(--gold); }
+.fine { font-size: .78rem; color: var(--muted); margin: 0; }
+
+footer { color: var(--muted); font-size: .8rem; display: grid; gap: 6px; }
+footer details summary { cursor: pointer; color: var(--text); }
+footer ul { margin: 8px 0 0; padding-left: 18px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .receipt { animation: rise .45s ease-out both; }
+  @keyframes rise { from { transform: translateY(12px); opacity: .4; } to { transform: none; opacity: 1; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="brand">Wallahi I <span>Fumbled</span></h1>
+    <p class="tag">Paste your Solana wallet. We replay every memecoin you sold and show how much SOL you'd have if you'd sold at the top instead.</p>
+  </header>
+
+  <form id="form" autocomplete="off">
+    <label class="lbl" for="wallet">Wallet address</label>
+    <div class="row">
+      <input id="wallet" name="wallet" placeholder="e.g. 7xKX…9fQp" spellcheck="false" required>
+      <select id="depth" name="depth" aria-label="How many positions to check">
+        <option value="10">Top 10 sells</option>
+        <option value="15" selected>Top 15 sells</option>
+        <option value="25">Top 25 sells</option>
+      </select>
+      <button class="go" id="go" type="submit">Show me the damage</button>
+    </div>
+    <p class="hint">We check your biggest sells first, since that's where the worst fumbles live. Takes 5 to 10 seconds. <button type="button" class="link" id="demo">See an example</button></p>
+  </form>
+
+  <div id="status" class="status" hidden></div>
+  <div id="out"></div>
+
+  <footer>
+    <details>
+      <summary>How the numbers work</summary>
+      <ul>
+        <li><b>Fumbled</b>: for each token you sold, (all-time high price − your average sell price) × tokens sold, converted to SOL at today's price.</li>
+        <li><b>If you'd held</b>: same math using today's price instead of the all-time high. For most memecoins this is near zero, because they died.</li>
+        <li>Skipped: tokens you never sold, sells under $1, tokens with no recorded all-time high. Only sells paid out in SOL are counted.</li>
+        <li>Data from Solana Tracker. For entertainment, not financial advice.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>All ranks</summary>
+      <ul class="ranks" id="ranks"></ul>
+    </details>
+    <span>wallahi-i-fumbled · the bag was right there</span>
+  </footer>
+</div>
+
+<script>
+// [upper limit in SOL fumbled, rank name]
+const TIERS = [
+  [1, "Diamond hands, wallahi"],
+  [5, "Barely a scratch"],
+  [10, "Minor L"],
+  [25, "Light fumble"],
+  [50, "Paper hands in training"],
+  [100, "Certified fumbler"],
+  [250, "Exit liquidity"],
+  [500, "Sold the bottom, akhi"],
+  [1000, "Fumbled the rent money"],
+  [5000, "Generational fumble"],
+  [10000, "Fumbled the bag and the bag's family"],
+  [50000, "Tell your kids it was a rug"],
+  [100000, "Hall of Shame"],
+  [Infinity, "Should've just held, akhi"],
+];
+const tierIndex = (sol) => TIERS.findIndex(([max]) => sol < max);
+const tierFor = (sol) => TIERS[tierIndex(sol)][1];
+const rangeText = (i) => {
+  const lo = i === 0 ? 0 : TIERS[i - 1][0];
+  const hi = TIERS[i][0];
+  const k = (n) => n >= 1000 ? (n / 1000) + "k" : String(n);
+  return hi === Infinity ? `${k(lo)}+ SOL` : `${k(lo)} – ${k(hi)} SOL`;
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n, d = 2) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: n && Math.abs(n) < 100 ? Math.min(d, 2) : 0 });
+const usd = (n) => "$" + fmt(n, 0);
+const price = (n) => {
+  if (!n) return "$0";
+  if (n >= 1) return "$" + fmt(n, 4);
+  const s = n.toPrecision(3);
+  return "$" + (n < 1e-6 ? Number(s).toExponential(2) : Number(s).toString());
+};
+const short = (w) => w.slice(0, 4) + "…" + w.slice(-4);
+const date = (ms) => ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+
+$("ranks").innerHTML = TIERS.map((t, i) =>
+  `<li><span>${i + 1}. ${esc(t[1])}</span><span>${rangeText(i)}</span></li>`).join("");
+
+const LOADING = [
+  "Pulling up your sells…",
+  "Finding every top you missed…",
+  "Doing the math you've been avoiding…",
+  "Bismillah, this one's gonna hurt…",
+];
+let loadTimer;
+function showStatus(msg, isErr) {
+  const el = $("status");
+  el.hidden = false;
+  el.className = "status" + (isErr ? " err" : "");
+  el.textContent = msg;
+}
+
+function render(d, isSample) {
+  $("status").hidden = true;
+  const tier = tierFor(d.peakSol);
+  const worst = d.positions.find((p) => p.peakUsd > 0);
+  const top = d.positions.filter((p) => p.peakUsd > 0).slice(0, 10);
+
+  const shareText = `Wallahi I fumbled ${fmt(d.peakSol, 1)} SOL (${usd(d.peakUsd)}) selling memecoins before the top.` +
+    (worst ? ` Worst one: $${worst.symbol}, ${fmt(worst.multiple, 1)}x after I sold.` : "") + ` Tier: ${tier}`;
+
+  const img = (p) => p.image
+    ? `<img class="tok-img" src="${esc(p.image)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'tok-img',textContent:'${esc(p.symbol.slice(0, 2))}'}))">`
+    : `<div class="tok-img">${esc(p.symbol.slice(0, 2))}</div>`;
+
+  const rank = tierIndex(d.peakSol);
+  $("out").innerHTML = `
+  <button type="button" class="finished" id="fin" aria-live="assertive">
+    <span class="fin-title">Wallahi, I'm finished</span>
+    <span class="fin-sub">tap to see the damage</span>
+  </button>
+  <article class="receipt" id="receipt" hidden>
+    ${isSample ? `<div class="sample-flag">Example wallet · made-up numbers</div>` : ""}
+    <div class="r-top">
+      <span class="r-label">You fumbled</span>
+      <div class="big">${fmt(d.peakSol, d.peakSol < 100 ? 2 : 0)}<small>SOL</small></div>
+      <span class="usd">≈ ${usd(d.peakUsd)} at today's SOL price (${price(d.solPrice)})</span>
+      <span class="tier">${esc(tier)}</span>
+      <span class="rank-of">Rank ${rank + 1} of ${TIERS.length}</span>
+      <span class="wallet-line">${esc(d.wallet)}</span>
+    </div>
+    <div class="tear" aria-hidden="true"></div>
+    <div class="stats">
+      <div class="stat"><span class="r-label">If you'd just held</span><b>${fmt(d.diamondSol, 2)} SOL</b></div>
+      <div class="stat"><span class="r-label">Sells checked</span><b>${d.scored} of ${d.totalPositions ?? "?"}</b></div>
+      <div class="stat"><span class="r-label">Sold at the top</span><b>${d.excluded.soldAtTop}</b></div>
+    </div>
+    ${worst ? `
+    <div class="worst">
+      <span class="r-label">Biggest fumble</span>
+      <div class="worst-body">
+        ${img(worst)}
+        <div class="worst-text">
+          <h3>$${esc(worst.symbol)} <span style="color:var(--loss)">−${fmt(worst.peakSol, worst.peakSol < 100 ? 2 : 0)} SOL</span></h3>
+          <p>You sold ${usd(worst.sellUsd)} worth at ${price(worst.avgSell)}. It later hit ${price(worst.ath)}${worst.athTime ? " on " + date(worst.athTime) : ""}, <em>${fmt(worst.multiple, 1)}x</em> your exit.</p>
+        </div>
+      </div>
+    </div>` : ""}
+    ${top.length ? `
+    <div class="list">
+      <h4>Your worst exits</h4>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Token</th><th class="num">Sold for</th><th class="num">Ran</th><th class="num">Fumbled</th></tr></thead>
+        <tbody>${top.map((p) => `
+          <tr>
+            <td class="sym">$${esc(p.symbol)}<small>${esc(p.name)}</small></td>
+            <td class="num">${usd(p.sellUsd)}</td>
+            <td class="num">${fmt(p.multiple, 1)}x</td>
+            <td class="num loss">${fmt(p.peakSol, p.peakSol < 100 ? 2 : 0)} SOL</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>
+    </div>` : `<div class="worst"><p class="tag">No fumbles found in the sells we checked. Either you sold every top or the data missed it. Respect.</p></div>`}
+    <div class="r-foot">
+      <div class="share">
+        <button class="btn2" id="copy" type="button">Copy my fumble</button>
+        <a class="btn2" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(shareText + " " + location.origin)}">Post on X</a>
+      </div>
+      <p class="fine">Skipped ${d.excluded.dust} dust sells and ${d.excluded.noAth} tokens with no recorded all-time high. All-time highs on thin memecoins can be noisy, so treat this as a roast, not an audit.</p>
+    </div>
+  </article>`;
+
+  // Show "Wallahi, I'm finished" first, then reveal the results.
+  const fin = $("fin");
+  const reveal = () => {
+    clearTimeout(revealTimer);
+    if (fin.hidden) return;
+    fin.hidden = true;
+    $("receipt").hidden = false;
+  };
+  const revealTimer = setTimeout(reveal, 2600);
+  fin.addEventListener("click", reveal);
+
+  $("copy").addEventListener("click", async (e) => {
+    try { await navigator.clipboard.writeText(shareText); e.target.textContent = "Copied"; }
+    catch { e.target.textContent = "Couldn't copy"; }
+    setTimeout(() => (e.target.textContent = "Copy my fumble"), 1800);
+  });
+  $("out").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const wallet = $("wallet").value.trim();
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
+    showStatus("That doesn't look like a Solana wallet address. It should be 32 to 44 letters and numbers.", true);
+    return;
+  }
+  $("go").disabled = true;
+  $("out").innerHTML = "";
+  let i = 0;
+  showStatus(LOADING[0]);
+  loadTimer = setInterval(() => showStatus(LOADING[++i % LOADING.length]), 2200);
+  try {
+    const res = await fetch(`/api/fumble?wallet=${encodeURIComponent(wallet)}&depth=${$("depth").value}`);
+    const data = await res.json().catch(() => ({ error: "The server sent back something unexpected." }));
+    if (!res.ok) throw new Error(data.error || "Something went wrong.");
+    render(data, false);
+  } catch (err) {
+    const offline = location.protocol === "file:";
+    showStatus(offline
+      ? "Live checks only work once the site is deployed (see README). Tap \"See an example\" to preview the results card."
+      : err.message, true);
+  } finally {
+    clearInterval(loadTimer);
+    $("go").disabled = false;
+  }
+});
+
+$("demo").addEventListener("click", () => {
+  const solPrice = 152.4;
+  const mk = (symbol, name, sellUsd, avgSell, ath, current, athTime) => {
+    const tokensSold = sellUsd / avgSell;
+    const peakUsd = Math.max(0, ath - avgSell) * tokensSold;
+    const diamondUsd = Math.max(0, current - avgSell) * tokensSold;
+    return { symbol, name, image: null, sellUsd, avgSell, ath, current, athTime, tokensSold,
+      multiple: ath / avgSell, peakUsd, peakSol: peakUsd / solPrice, diamondUsd, diamondSol: diamondUsd / solPrice };
+  };
+  const positions = [
+    mk("GOOBER", "Goober the Cat", 412, 0.0000182, 0.00211, 0.0000041, Date.UTC(2026, 2, 14)),
+    mk("SANDCAT", "Desert Cat", 980, 0.00041, 0.0118, 0.00009, Date.UTC(2026, 5, 2)),
+    mk("NOODLE", "Noodle Coin", 260, 0.0000071, 0.000094, 0.0000002, Date.UTC(2025, 11, 20)),
+    mk("BRRT", "Brrrt", 1450, 0.0021, 0.0119, 0.00031, Date.UTC(2026, 7, 8)),
+    mk("MOTH", "Lamp Moth", 95, 0.000033, 0.00041, 0.0000012, Date.UTC(2026, 0, 30)),
+    mk("CHAI", "Chai Dog", 640, 0.0009, 0.0031, 0.0012, Date.UTC(2026, 3, 11)),
+  ].sort((a, b) => b.peakUsd - a.peakUsd);
+  const sum = (k) => positions.reduce((s, p) => s + p[k], 0);
+  render({
+    wallet: "Example wallet",
+    solPrice, scored: positions.length, totalPositions: 214,
+    excluded: { dust: 31, noAth: 3, soldAtTop: 0 },
+    peakSol: sum("peakSol"), peakUsd: sum("peakUsd"),
+    diamondSol: sum("diamondSol"), diamondUsd: sum("diamondUsd"),
+    positions,
+  }, true);
+});
+</script>
+</body>
+</html>
